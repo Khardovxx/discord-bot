@@ -1,6 +1,7 @@
 import os
 import sys
 import io
+import asyncio
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8') if sys.platform == "win32" else None
 
 import nextcord
@@ -10,8 +11,30 @@ import json
 import random
 from datetime import datetime, timedelta
 from collections import defaultdict
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
 load_dotenv()
+
+class HealthCheck(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/plain')
+        self.end_headers()
+        self.wfile.write(b'OK')
+    def log_message(self, format, *args):
+        pass
+
+def start_health_check():
+    port = int(os.environ.get('PORT', 10000))
+    try:
+        server = HTTPServer(('', port), HealthCheck)
+        server.serve_forever()
+    except:
+        pass
+
+import threading
+health_thread = threading.Thread(target=start_health_check, daemon=True)
+health_thread.start()
 
 intents = nextcord.Intents.all()
 intents.message_content = True
@@ -509,8 +532,6 @@ async def help_cmd(ctx):
     embed.add_field(name="🎲 Развлечения", value="`!meme` - мем\n`!cat` - кот\n`!dog` - собака\n`!rps <r/p/s>` - камень-ножницы-бумага\n`!hack <@user>` - мини-игра", inline=False)
     embed.set_footer(text="Bot for Ебаного Таркова | 31+")
     await ctx.send(embed=embed)
-
-import asyncio
 
 if __name__ == '__main__':
     bot.run(os.getenv('DISCORD_TOKEN'))
